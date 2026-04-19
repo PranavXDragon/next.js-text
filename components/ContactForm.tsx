@@ -14,6 +14,7 @@ interface FormErrors {
   email?: string
   subject?: string
   message?: string
+  submit?: string
 }
 
 export default function ContactForm() {
@@ -69,6 +70,13 @@ export default function ContactForm() {
         [name]: undefined,
       }))
     }
+    // Clear submit error if any
+    if (errors.submit) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: undefined,
+      }))
+    }
   }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -81,10 +89,22 @@ export default function ContactForm() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Submit to MongoDB backend
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
 
-      console.log('Form submitted:', formData)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit form')
+      }
+
+      console.log('Form submitted successfully:', data)
       setSubmitted(true)
       setFormData({
         name: '',
@@ -99,6 +119,9 @@ export default function ContactForm() {
       }, 5000)
     } catch (error) {
       console.error('Error submitting form:', error)
+      setErrors({
+        submit: error instanceof Error ? error.message : 'Failed to submit form. Please try again.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -110,6 +133,13 @@ export default function ContactForm() {
         <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md">
           <p className="font-semibold">Thank you!</p>
           <p className="text-sm">Your message has been sent successfully.</p>
+        </div>
+      )}
+
+      {errors.submit && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+          <p className="font-semibold">Error</p>
+          <p className="text-sm">{errors.submit}</p>
         </div>
       )}
 
